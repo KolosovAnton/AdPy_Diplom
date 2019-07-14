@@ -4,6 +4,7 @@ import json
 import time
 import sys
 from pprint import pprint
+from datetime import datetime, date
 
 # APP_ID = 7053235
 # BASE_URL = 'https://oauth.vk.com/authorize'
@@ -60,6 +61,50 @@ class User:
             v='5.101'
         )
 
+    def get_user(self):
+        params = {
+            'fields': 'bdate, city, interests, books, movies, music'
+        }
+        params.update(self.get_params())
+        response = requests.get(
+            'https://api.vk.com/method/users.get',
+            params
+        )
+        user_result = response.json()['response']
+        try:
+            hometown = user_result[0]['city']['title']
+            user_result[0]['hometown'] = hometown
+        except KeyError:
+            user_result[0]['hometown'] = input('Введите название своего города: ')
+        try:
+            bdate = user_result[0]['bdate'].split('.')
+            now_date = datetime.now().date().strftime('%d.%m.%Y').split('.')
+            age = int(now_date[2]) - int(bdate[2])
+        except KeyError:
+            age = int(input('Введите ваш возраст: '))
+        user_result[0]['age'] = age
+        try:
+            if user_result[0]['interests'] == '':
+                user_result[0]['interests'] = input('Введите ваши интересы: ')
+        except KeyError:
+            user_result[0]['interests'] = input('Введите ваши интересы: ')
+        try:
+            if user_result[0]['books'] == '':
+                user_result[0]['books'] = input('Введите ваши любимые книги: ')
+        except KeyError:
+            user_result[0]['books'] = input('Введите ваши любимые книги: ')
+        try:
+            if user_result[0]['movies'] == '':
+                user_result[0]['movies'] = input('Введите ваши любимые фильмы: ')
+        except KeyError:
+            user_result[0]['movies'] = input('Введите ваши любимые фильмы: ')
+        try:
+            if user_result[0]['music'] == '':
+                user_result[0]['music'] = input('Введите вашу любимую музыку: ')
+        except KeyError:
+            user_result[0]['music'] = input('Введите вашу любимую музыку: ')
+        return user_result
+
     def get_groups(self):
         params = self.get_params()
         response = requests.get(
@@ -75,17 +120,14 @@ class User:
         else:
             return user_groups
 
-    def search_users(self, hometown='', sex=None, age_from=None, age_to=None):
-        if not hometown:
-            hometown = input('Введите название города для поиска: ')
-        if not sex:
-            sex = input('Введите пол для поиска:\n\t1 - женщина;\n\t2 - мужчина;\n\t0 - любой;\n')
-        if not age_from:
-            age_from = input('Введите возраст от: ')
-        if not age_to:
-            age_to = input('Введите возраст до: ')
+    def search_users(self):
+        user_result = self.get_user()
+        sex = input('Введите пол для поиска:\n\t1 - женщина;\n\t2 - мужчина;\n\t0 - любой;\n')
+        hometown = user_result[0]['hometown']
+        age_from = user_result[0]['age'] - 1
+        age_to = user_result[0]['age'] + 1
         params = {
-            'count': 1000,
+            'count': 10,
             'hometown': hometown,
             'sex': sex,
             'status': 0 or 1 or 6,
@@ -100,6 +142,7 @@ class User:
             params
         )
         search_result = response.json()['response']['items']
+        # print(response.json()['response']['count'])
         user_groups = set(self.get_groups())
         for result in search_result:
             try:
@@ -135,4 +178,5 @@ class User:
 
 user = User(TOKEN, user_name)
 print(user)
+# pprint(user.get_user())
 pprint(user.search_users())
