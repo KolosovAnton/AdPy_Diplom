@@ -60,21 +60,6 @@ class User:
             v='5.101'
         )
 
-    def get_friends(self):
-        params = self.get_params()
-        response = requests.get(
-            'https://api.vk.com/method/friends.get',
-            params
-        )
-        try:
-            print(f'Получение списка друзей пользователя https://vk.com/id{self.user_id}')
-            user_friends = response.json()['response']['items']
-        except KeyError:
-            print(f'Пользователь https://vk.com/id{self.user_id} ограничил доступ к своим'
-                  f' друзьям, удален или заблокирован')
-        else:
-            return user_friends
-
     def get_groups(self):
         params = self.get_params()
         response = requests.get(
@@ -115,7 +100,6 @@ class User:
             params
         )
         search_result = response.json()['response']['items']
-        # print(response.json()['response']['count'])
         user_groups = set(self.get_groups())
         for result in search_result:
             try:
@@ -148,13 +132,7 @@ class User:
                 result['common_group'] = 'Пользователь закрыл свои группы'
         return search_result
 
-    def result_search(self, **kwargs):
-        search_result = self.search_users(**kwargs)
-        return search_result
-
 
 user = User(TOKEN, user_name)
 print(user)
-pprint(user.result_search())
-
-# xaxol666
+pprint(user.search_users())
