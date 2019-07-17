@@ -20,7 +20,7 @@ import csv
 #
 # print('?'.join((BASE_URL, urlencode(auth_data))))
 
-TOKEN = '5bd9a1c37b7695f33d729c1adc8e0e656a58454f758b191d27b963579e562866c4817c38f44d1bbbda6a0'
+TOKEN = 'c720fe3c9f942f7ecfb989c032871ef45b68d2c4f0c292e90d0d6794b6192ef16e81a9f45390f96dff07c'
 
 user_name = input('Введите имя пользователя или его id: ')
 
@@ -42,7 +42,7 @@ class User:
                 params
             )
             try:
-                print('Получение id пользователя из его короткого имени')
+                # print('Получение id пользователя из его короткого имени')
                 self.user_id = response.json()['response']['object_id']
             except KeyError:
                 print(f'У пользователя {self.user_name} не получен id')
@@ -112,11 +112,33 @@ class User:
         )
         try:
             user_groups = response.json()['response']['items']
-            print(f'Получение списка групп пользователя https://vk.com/id{self.user_id}')
+            # print(f'Получение списка групп пользователя https://vk.com/id{self.user_id}')
         except KeyError:
-            print(f'Пользователь https://vk.com/id{self.user_id} ограничил доступ к своим группам')
+            user_groups = '0'
+            # print(user_groups, f'Пользователь https://vk.com/id{self.user_id} ограничил доступ к своим группам')
+        return user_groups
+
+    def get_photos(self):
+        params = {
+            'owner_id': self.user_id,
+            'album_id': -6,
+            'extended': 1,
+            'rev': 1,
+            'photo_sizes': 1
+        }
+        params.update(self.get_params())
+        response = requests.get(
+            'https://api.vk.com/method/photos.get',
+            params
+        )
+        try:
+            user_photos = response.json()['response']['items']
+            for photo in user_photos:
+                photo['likes'] = photo['likes']['count']
+        except KeyError:
+            print(f'Пользователь https://vk.com/id{self.user_id} ограничил доступ к своим фотографиям')
         else:
-            return user_groups
+            return user_photos
 
     def search_users(self):
         user_result = self.get_user()
@@ -128,14 +150,13 @@ class User:
         age_from = user_result[0]['age'] - 1
         age_to = user_result[0]['age'] + 1
         params = {
-            'count': 31,
+            'count': 1000,
             'hometown': hometown,
             'sex': sex,
-            'status': 0 or 1 or 6,
             'age_from': age_from,
             'age_to': age_to,
             'has_photo': 1,
-            'fields': 'bdate, screen_name, common_count, interests, books, music'
+            'fields': 'bdate, screen_name, common_count, interests, books, music, relation'
         }
         params.update(self.get_params())
         response = requests.get(
@@ -144,7 +165,16 @@ class User:
         )
         search_result = response.json()['response']['items']
         user_groups = set(self.get_groups())
+        status = {0, 1, 6}
+        search_result_after_relation = []
         for result in search_result:
+            try:
+                if result['relation'] in status:
+                    search_result_after_relation.append(result)
+            except KeyError:
+                result['relation'] = 0
+                search_result_after_relation.append(result)
+        for result in search_result_after_relation:
             try:
                 if result['interests'] == '':
                     result['interests'] = 'Поле не заполнено'
@@ -160,41 +190,54 @@ class User:
                     result['music'] = 'Поле не заполнено'
             except KeyError:
                 result['music'] = 'Поле не заполнено'
-            time.sleep(0.34)
+            time.sleep(0.3)
             self.user_id = result['id']
             try:
                 groups_result = set(self.get_groups())
                 common_group = user_groups.intersection(groups_result)
                 result['common_group'] = len(common_group)
             except TypeError:
-                result['common_group'] = 'Пользователь закрыл свои группы'
-        return search_result, user_result
+                result['common_group'] = '0'
+        return search_result_after_relation, user_result
 
     def result_search(self):
         search = self.search_users()
         search_result = search[0]
         user_result = search[1]
+        result_after_closed = []
         for result in search_result:
-            try:
-                bdate = result['bdate'].split('.')
-                if result['is_closed'] == True or len(bdate) != 3:
-                    with open('users_not_fit.txt', 'w', encoding='utf-8') as f_write:
-                        f_write.write(f"{result['id']}, ")
-                    search_result.remove(result)
-            except KeyError:
+            if result['is_closed'] == False:
+                result_after_closed.append(result)
+            else:
                 with open('users_not_fit.txt', 'a', encoding='utf-8') as f_write:
-                    f_write.write(f"{result['id']}, ")
-                search_result.remove(result)
+                    f_write.write(f"{result['id']},")
+
+        result_after_count = []
         users_fit = []
-        search_result = sorted(search_result, key=lambda x: x['common_count'], reverse=True)
-        for item in search_result:
+        result_after_closed = sorted(result_after_closed, key=lambda x: x['common_count'], reverse=True)
+        for item in result_after_closed:
             if len(users_fit) == 10:
                 break
             if item['common_count'] != 0:
                 users_fit.append(item)
-                search_result.remove(item)
-        search_result = sorted(search_result, key=lambda x: x['bdate'], reverse=True)
-        for item in search_result:
+            else:
+                result_after_count.append(item)
+
+        result_bdate = []
+        for result in result_after_count:
+            try:
+                bdate = result['bdate'].split('.')
+                if len(bdate) == 3:
+                    result_bdate.append(result)
+                else:
+                    with open('users_not_fit.txt', 'a', encoding='utf-8') as f_write:
+                        f_write.write(f"{result['id']},")
+            except KeyError:
+                with open('users_not_fit.txt', 'a', encoding='utf-8') as f_write:
+                    f_write.write(f"{result['id']},")
+        result_bdate = sorted(result_bdate, key=lambda x: x['bdate'], reverse=True)
+        result_after_bdate = []
+        for item in result_bdate:
             if len(users_fit) == 10:
                 break
             bdate = item['bdate'].split('.')
@@ -202,21 +245,43 @@ class User:
             item_age = int(now_date[2]) - int(bdate[2])
             if item_age == user_result[0]['age']:
                 users_fit.append(item)
-                search_result.remove(item)
-        search_result = sorted(search_result, key=lambda x: x['common_group'], reverse=True)
-        for item in search_result:
+            else:
+                result_after_bdate.append(item)
+
+        result_after_bdate = sorted(result_after_bdate, key=lambda x: x['common_group'], reverse=True)
+        result_after_group = []
+        for item in result_after_bdate:
             if len(users_fit) == 10:
                 break
             if item['common_count'] != 0:
                 users_fit.append(item)
-                search_result.remove(item)
-        for item in search_result:
+            else:
+                result_after_group.append(item)
+
+        result_common_interest = []
+        for item in result_after_group:
+            if len(users_fit) == 10:
+                break
             if item['interests'] == 'Поле не заполнено' and item['music'] == 'Поле не заполнено' \
                     and item['books'] == 'Поле не заполнено':
-                with open('users_not_fit.txt', 'w', encoding='utf-8') as f_write:
-                    f_write.write(f"{item['id']}, ")
-                search_result.remove(item)
+                with open('users_not_fit.txt', 'a', encoding='utf-8') as f_write:
+                    f_write.write(f"{item['id']},")
+            else:
+                result_common_interest.append(item)
         # поиск по интересам, музыке, книгам
+        for item in users_fit:
+            with open('users_fit.txt', 'a', encoding='utf-8') as f_write:
+                f_write.write(f"{item['id']},")
+            time.sleep(0.3)
+            self.user_id = item['id']
+            user_photos = self.get_photos()
+            user_photos = sorted(user_photos, key=lambda x: x['likes'], reverse=True)
+            top_3_url = []
+            for photo in user_photos[:3]:
+                for item_size in photo['sizes']:
+                    if item_size['type'] == 'x':
+                        top_3_url.append(item_size['url'])
+            item['top_3'] = top_3_url
         return users_fit
 
     def new_search(self):
@@ -230,5 +295,5 @@ user = User(TOKEN, user_name)
 
 if __name__ == '__main__':
     print(user)
-    user.new_search()
-    user.result_search()
+    # user.new_search()
+    pprint(user.result_search())
