@@ -4,6 +4,7 @@ import json
 import time
 import sys
 from datetime import datetime
+from pprint import pprint
 
 # APP_ID = 7053235
 # BASE_URL = 'https://oauth.vk.com/authorize'
@@ -18,7 +19,7 @@ from datetime import datetime
 #
 # print('?'.join((BASE_URL, urlencode(auth_data))))
 
-TOKEN = '9183c6520ce6eb31329c80d5979df4061cc6293894c3987819d2d4a3e3ece7c8f2be2a405157ea35b3f79'
+TOKEN = '04e019d28e24eadd9c0d6a1fdb033100f4dcba761c2a16a15105b74fbe78078edca18da0396577f55c316'
 
 user_name = input('Введите имя пользователя или его id: ')
 
@@ -202,8 +203,27 @@ class User:
         search = self.search_users()
         search_result = search[0]
         user_result = search[1]
+
+        with open('log/users_not_fit.txt', encoding='utf-8') as f_read:
+            not_fit = f_read.read()
+        with open('log/users_fit.txt', encoding='utf-8') as f_read:
+            fit = f_read.read()
+        set_not_fit = set(not_fit.split(',')[:-1])
+        set_fit = set(fit.split(',')[:-1])
+        result_after_search = []
+        for item in search_result:
+            set_id = {str(item['id'])}
+            print(set_id)
+            common_fit = set_id.intersection(set_fit)
+            print(len(common_fit))
+            if len(common_fit) == 0:
+                common_not_fit = set_id.intersection(set_not_fit)
+                print(len(common_not_fit))
+                if len(common_not_fit) == 0:
+                    result_after_search.append(item)
+
         result_after_closed = []
-        for result in search_result:
+        for result in result_after_search:
             if result['is_closed'] == False:
                 result_after_closed.append(result)
             else:
@@ -293,7 +313,7 @@ class User:
                 'top_3_photo': item['top_3']
             }
             list_user_fit.append(dict_item)
-        with open('json/search_result.json', 'w', encoding='utf-8') as w_file:
+        with open('json/search_result.json', 'a', encoding='utf-8') as w_file:
             json.dump(list_user_fit, w_file)
         return list_user_fit
 
@@ -302,5 +322,6 @@ user = User(TOKEN, user_name)
 
 if __name__ == '__main__':
     print(user)
+    pprint(user.output_file())
 
 # дополнить поиск на сравнение уже имеющихся id в логах с полученными id в ходе поиска

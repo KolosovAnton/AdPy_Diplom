@@ -9,10 +9,8 @@ new_search()
 # тело программы с выбором варианта: новый поиск, продолжить поиск, выход
 client = MongoClient()
 diplom_db = client['diplom']
-
-# обнуляет ли то что внизу БД?
 result_collection = diplom_db['result']
-
+# удалить коллекцию
 
 def search():
     list_user_fit = user.output_file()
