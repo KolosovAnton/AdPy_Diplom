@@ -17,7 +17,7 @@ def new_search():
     client = MongoClient()
     diplom_db = client['diplom']
     result_collection = diplom_db['result']
-    diplom_db.result_collection.remove({})
+    diplom_db.result.delete_many({})
 
 
 if __name__ == '__main__':

@@ -41,7 +41,7 @@ class User:
                 params
             )
             try:
-                # print('Получение id пользователя из его короткого имени')
+                print('Получение id пользователя из его короткого имени')
                 self.user_id = response.json()['response']['object_id']
             except KeyError:
                 print(f'У пользователя {self.user_name} не получен id')
@@ -111,10 +111,10 @@ class User:
         )
         try:
             user_groups = response.json()['response']['items']
-            # print(f'Получение списка групп пользователя https://vk.com/id{self.user_id}')
+            print(f'Получение списка групп пользователя https://vk.com/id{self.user_id}')
         except KeyError:
             user_groups = '0'
-            # print(user_groups, f'Пользователь https://vk.com/id{self.user_id} ограничил доступ к своим группам')
+            print(user_groups, f'Пользователь https://vk.com/id{self.user_id} ограничил доступ к своим группам')
         return user_groups
 
     def get_photos(self):
@@ -163,7 +163,6 @@ class User:
             params
         )
         search_result = response.json()['response']['items']
-        user_groups = set(self.get_groups())
         status = {0, 1, 6}
         search_result_after_relation = []
         for result in search_result:
@@ -189,14 +188,6 @@ class User:
                     result['music'] = 'Поле не заполнено'
             except KeyError:
                 result['music'] = 'Поле не заполнено'
-            time.sleep(0.34)
-            self.user_id = result['id']
-            try:
-                groups_result = set(self.get_groups())
-                common_group = user_groups.intersection(groups_result)
-                result['common_group'] = len(common_group)
-            except TypeError:
-                result['common_group'] = '0'
         return search_result_after_relation, user_result
 
     def result_search(self):
@@ -213,12 +204,9 @@ class User:
         result_after_search = []
         for item in search_result:
             set_id = {str(item['id'])}
-            print(set_id)
             common_fit = set_id.intersection(set_fit)
-            print(len(common_fit))
             if len(common_fit) == 0:
                 common_not_fit = set_id.intersection(set_not_fit)
-                print(len(common_not_fit))
                 if len(common_not_fit) == 0:
                     result_after_search.append(item)
 
@@ -266,6 +254,16 @@ class User:
             else:
                 result_after_bdate.append(item)
 
+        user_groups = set(self.get_groups())
+        for result in result_after_bdate:
+            time.sleep(0.34)
+            self.user_id = result['id']
+            try:
+                groups_result = set(self.get_groups())
+                common_group = user_groups.intersection(groups_result)
+                result['common_group'] = len(common_group)
+            except TypeError:
+                result['common_group'] = '0'
         result_after_bdate = sorted(result_after_bdate, key=lambda x: x['common_group'], reverse=True)
         result_after_group = []
         for item in result_after_bdate:
@@ -323,5 +321,3 @@ user = User(TOKEN, user_name)
 if __name__ == '__main__':
     print(user)
     pprint(user.output_file())
-
-# дополнить поиск на сравнение уже имеющихся id в логах с полученными id в ходе поиска
