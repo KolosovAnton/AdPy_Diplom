@@ -1,10 +1,10 @@
 import requests
-from urllib.parse import urlencode
 import json
 import time
 import sys
 from datetime import datetime
 from pprint import pprint
+from urllib.parse import urlencode
 
 # APP_ID = 7053235
 # BASE_URL = 'https://oauth.vk.com/authorize'
@@ -19,7 +19,7 @@ from pprint import pprint
 #
 # print('?'.join((BASE_URL, urlencode(auth_data))))
 
-TOKEN = '04e019d28e24eadd9c0d6a1fdb033100f4dcba761c2a16a15105b74fbe78078edca18da0396577f55c316'
+TOKEN = '4e8238c2c57817994b48407e67bc2c15ded92e2e11331255b3a287f4b14835c4d1a6363c4f9b359403715'
 
 user_name = input('Введите имя пользователя или его id: ')
 

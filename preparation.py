@@ -13,7 +13,7 @@ def new_search():
     with open('log/users_fit.txt', 'w', encoding='utf-8') as f_write:
         f_write.write('')
     with open('json/search_result.json', 'w', encoding='utf-8') as w_file:
-        json.dump('search result:', w_file)
+        json.dump('', w_file)
     client = MongoClient()
     diplom_db = client['diplom']
     result_collection = diplom_db['result']
